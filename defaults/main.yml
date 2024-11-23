@@ -1,6 +1,8 @@
 ---
-app_homeassistant_enabled: false
-app_homeassistant_puid: '16704'
-app_homeassistant_pgid: '16704'
-app_homeassistant_tz: "Europe/Zurich"
-app_homeassistant_dir: "/opt/app-homeassistant"
+role_homeassistant_image: 'lscr.io/linuxserver/homeassistant'
+role_homeassistant_container: 'homeassistant'
+role_homeassistant_puid: '1000'
+role_homeassistant_pgid: '1000'
+role_homeassistant_tz: 'Europe/Zurich'
+role_homeassistant_dir: '/opt/app-homeassistant'
+role_homeassistant_network: 'app-network'

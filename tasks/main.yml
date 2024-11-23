@@ -1,3 +1,61 @@
 ---
-- include_tasks: "{{ role_path }}/tasks/setup.yml"
-  when: "app_homeassistant_enabled|bool"
+- name: set vars
+  set_fact:
+    docker_image: '{{ role_homeassistant_image }}'
+    docker_container: '{{ role_homeassistant_container }}'
+    docker_puid: '{{ role_homeassistant_puid }}'
+    docker_pgid: '{{ role_homeassistant_pgid }}'
+    docker_tz: '{{ role_homeassistant_tz }}'
+    docker_dir_config: '{{ role_homeassistant_dir }}/config'
+    docker_network: '{{ role_homeassistant_network }}'
+
+- name: Create config directory
+  ansible.builtin.file:
+    path: '{{ docker_dir_config }}'
+    state: directory
+    owner: '{{ docker_puid }}'
+    group: '{{ docker_pgid }}'
+    mode: 0755
+
+- name: Ensure image is pulled
+  community.docker.docker_image:
+    name: "{{ docker_image }}"
+    source: pull
+    force_source: yes
+  register: pulled
+
+- name: Remove container
+  community.docker.docker_container:
+    name: "{{ docker_container }}"
+    state: absent
+  when: pulled.changed
+
+- name: Get infos on container
+  community.docker.docker_container_info:
+    name: "{{ docker_container }}"
+  register: result
+
+- name: Create network
+  community.docker.docker_network:
+    name: "{{ docker_network }}"
+    driver_options:
+          com.docker.network.bridge.name: "br-{{ docker_network }}"
+
+- name: Create homeassistant container
+  community.docker.docker_container:
+    image: '{{ docker_image }}'
+    volumes:
+     - '{{ docker_dir_config }}:/config:Z'
+    env:
+      PUID: '{{ docker_puid }}'
+      PGID: '{{ docker_pgid }}'
+      TZ: '{{ docker_tz }}'
+    name: "{{ docker_container }}"
+    networks:
+     - name: "{{ docker_network }}"
+    restart_policy: unless-stopped
+    state: started
+  when:
+    pulled.changed
+    or
+    result.exists == false
